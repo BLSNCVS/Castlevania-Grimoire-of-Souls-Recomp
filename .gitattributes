@@ -1,0 +1,4 @@
+* text=auto
+*.bat text eol=crlf
+packaging/windows/*.txt text eol=crlf
+packaging/windows/*.ini text eol=crlf

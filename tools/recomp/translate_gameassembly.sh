@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Translates the game code of the macOS v1.4.2 GameAssembly (arm64 slice) to
+# C++: the registration-derived functions and the compiler-outlined helpers
+# (see BUILDING.md for how the inputs are produced).
+#
+# Required environment:
+#   GAME_ARM64   arm64 slice of GameAssembly.dylib (lipo -thin arm64)
+#   WORK         directory with ft_all.json, ft_gap.json, type_classes.json,
+#                lsda.json and Il2CppDumper's script.json
+#   RECOMP_OUT   output directory for the main translation
+#   GAP_OUT      output directory for the helper translation
+set -euo pipefail
+ulimit -s unlimited
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# Addresses in the v1.4.2 arm64 image:
+#   0x192c68, 0x1931a0  helpers returning native function pointers (icall and
+#                       P/Invoke resolution)
+#   0x3abc148           Il2CppExceptionWrapper's typeinfo
+#   0x182b004           LocalServer coroutine, replaced by the native offline server
+#   0x23b08bc           ope_pl_status.Damage           (debug menu: invincibility)
+#   0x1e08d38           ope_en_status.Damage           (debug menu: damage factor)
+#   0x1bec6fc           GetKeyboardInputText           (mouse button names)
+#   0x200fbe0           gsJoystick.IsTrigger           (controller axes 5-28)
+COMMON=(--signatures "$WORK/script.json" --types "$WORK/type_classes.json"
+        --native-resolvers 0x192c68,0x1931a0 --lsda "$WORK/lsda.json" --wrapper-typeinfo 0x3abc148)
+
+python3 -I "$HERE/arm64_recomp.py" "$GAME_ARM64" "$WORK/ft_all.json" "$RECOMP_OUT" --split 512 "${COMMON[@]}" \
+    --override 0x182b004=LocalServerMoveNext \
+    --hook 0x23b08bc=HookPlayerDamage --hook 0x1e08d38=HookEnemyDamage --hook 0x1bec6fc=HookKeyboardInputText \
+    --hook 0x200fbe0=HookIsTrigger
+python3 -I "$HERE/arm64_recomp.py" "$GAME_ARM64" "$WORK/ft_gap.json" "$GAP_OUT" --split 8 --extra-table "${COMMON[@]}"
+cp "$HERE/../../recomp/runtime/recomp_simd.h" "$RECOMP_OUT/"
+cp "$HERE/../../recomp/runtime/recomp_simd.h" "$GAP_OUT/"

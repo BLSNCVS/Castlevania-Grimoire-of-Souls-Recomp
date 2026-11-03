@@ -1,0 +1,20 @@
+build/
+out/
+*.ipa
+# never commit game data or dumps
+game/
+dump/
+*.dat
+*.assets
+*.ab
+*.sa
+__pycache__/
+build-win/
+*.dmg
+*.dylib
+*.macho
+gosr_*.log
+gosr_log.txt
+gosr_spfx_cache/
+crash_report/
+crash_report.zip
