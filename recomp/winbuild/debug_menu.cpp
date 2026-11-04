@@ -764,6 +764,89 @@ namespace
         }
     }
 
+    // The Input System of the macOS build has no XInputControllerWindows, so
+    // Unity's XInput devices (Xbox pads on Windows) never become gamepads:
+    // the game then misses LT/RT and the d-pad in menus, and its button hints
+    // show the generic HID names ("Button11"). The same layout, registered as
+    // JSON: XINPUT_GAMEPAD as Unity's Windows backend reports it ("XINP").
+    void RegisterXInputLayout()
+    {
+        static bool done = false;
+        if (done)
+            return;
+        done = true;
+        static const char kLayout[] = R"({
+"name": "XInputControllerWindows",
+"extend": "XInputController",
+"format": "XINP",
+"device": { "interface": "XInput" },
+"controls": [
+  { "name": "dpad", "layout": "Dpad", "offset": 0, "bit": 0, "sizeInBits": 4 },
+  { "name": "dpad/up", "offset": 0, "bit": 0 },
+  { "name": "dpad/down", "offset": 0, "bit": 1 },
+  { "name": "dpad/left", "offset": 0, "bit": 2 },
+  { "name": "dpad/right", "offset": 0, "bit": 3 },
+  { "name": "start", "offset": 0, "bit": 4, "displayName": "Start" },
+  { "name": "select", "offset": 0, "bit": 5, "displayName": "Select" },
+  { "name": "leftStickPress", "offset": 0, "bit": 6 },
+  { "name": "rightStickPress", "offset": 0, "bit": 7 },
+  { "name": "leftShoulder", "offset": 0, "bit": 8 },
+  { "name": "rightShoulder", "offset": 0, "bit": 9 },
+  { "name": "buttonSouth", "offset": 0, "bit": 12, "displayName": "A" },
+  { "name": "buttonEast", "offset": 0, "bit": 13, "displayName": "B" },
+  { "name": "buttonWest", "offset": 0, "bit": 14, "displayName": "X" },
+  { "name": "buttonNorth", "offset": 0, "bit": 15, "displayName": "Y" },
+  { "name": "leftTrigger", "offset": 2, "format": "BYTE" },
+  { "name": "rightTrigger", "offset": 3, "format": "BYTE" },
+  { "name": "leftStick", "layout": "Stick", "offset": 4, "format": "VC2S" },
+  { "name": "leftStick/x", "offset": 0, "format": "SHRT", "parameters": "clamp=false,invert=false,normalize=false" },
+  { "name": "leftStick/left", "offset": 0, "format": "SHRT", "parameters": "clamp=true,clampMin=-1,clampMax=0,invert" },
+  { "name": "leftStick/right", "offset": 0, "format": "SHRT", "parameters": "clamp=true,clampMin=0,clampMax=1" },
+  { "name": "leftStick/y", "offset": 2, "format": "SHRT", "parameters": "clamp=false,invert=false,normalize=false" },
+  { "name": "leftStick/down", "offset": 2, "format": "SHRT", "parameters": "clamp=true,clampMin=-1,clampMax=0,invert" },
+  { "name": "leftStick/up", "offset": 2, "format": "SHRT", "parameters": "clamp=true,clampMin=0,clampMax=1" },
+  { "name": "rightStick", "layout": "Stick", "offset": 8, "format": "VC2S" },
+  { "name": "rightStick/x", "offset": 0, "format": "SHRT", "parameters": "clamp=false,invert=false,normalize=false" },
+  { "name": "rightStick/left", "offset": 0, "format": "SHRT", "parameters": "clamp=true,clampMin=-1,clampMax=0,invert" },
+  { "name": "rightStick/right", "offset": 0, "format": "SHRT", "parameters": "clamp=true,clampMin=0,clampMax=1" },
+  { "name": "rightStick/y", "offset": 2, "format": "SHRT", "parameters": "clamp=false,invert=false,normalize=false" },
+  { "name": "rightStick/down", "offset": 2, "format": "SHRT", "parameters": "clamp=true,clampMin=-1,clampMax=0,invert" },
+  { "name": "rightStick/up", "offset": 2, "format": "SHRT", "parameters": "clamp=true,clampMin=0,clampMax=1" }
+] })";
+        wchar_t on[8] = {};
+        GetPrivateProfileStringW(L"controller", L"xinput", L"1", on, 8, g_iniPath.c_str());
+        if (on[0] == L'0')
+            return;
+        try
+        {
+            Il2CppClass* inputSystem = nullptr;
+            size_t n = 0;
+            const Il2CppAssembly** assemblies = il2cpp_domain_get_assemblies(il2cpp_domain_get(), &n);
+            for (size_t i = 0; i < n && !inputSystem; i++)
+                inputSystem = il2cpp_class_from_name(il2cpp_assembly_get_image(assemblies[i]), "UnityEngine.InputSystem", "InputSystem");
+            if (!inputSystem)
+                throw Failure{ "InputSystem not found" };
+            Il2CppString* json = il2cpp_string_new(kLayout);
+            alignas(8) uint8_t noMatcher[16] = {};  // InputDeviceMatcher? = null (the layout has its own)
+            void* args[3] = { json, nullptr, noMatcher };
+            // RegisterLayout(string json, string name, InputDeviceMatcher? matches), not the Type overload
+            const MethodInfo* registerJson = nullptr;
+            void* iter = nullptr;
+            while (const MethodInfo* m = il2cpp_class_get_methods(inputSystem, &iter))
+                if (!strcmp(il2cpp_method_get_name(m), "RegisterLayout") && il2cpp_method_get_param_count(m) == 3 &&
+                    !strcmp(il2cpp_type_get_name(il2cpp_method_get_param(m, 0)), "System.String"))
+                    registerJson = m;
+            if (!registerJson)
+                throw Failure{ "RegisterLayout(string, ...) not found" };
+            Invoke(registerJson, nullptr, args);
+            fprintf(stderr, "GoSRecomp: Input System layout for XInput controllers registered\n");
+        }
+        catch (const Failure& f)
+        {
+            fprintf(stderr, "GoSRecomp: XInput layout: %s\n", f.what.c_str());
+        }
+    }
+
     // m_config can still hold Mac numbers, or another pad's (the game keeps a
     // custom assignment when the pad changes). Sticks and d-pad always get the
     // PC values; buttons sitting on some table's default get the PC default.
@@ -803,6 +886,122 @@ namespace
     // Game state in the log, on every change: the scene, the tutorial step and
     // the tutorial sequence playing, to see where the game waits when it
     // seems stuck.
+    // The out-of-battle player characters (ope_og: hub, roster) and their
+    // Animator, on every change, for characters stuck in their bind pose.
+    void LogHubCharacters()
+    {
+        static std::string last;
+        static int logged = 0;
+        if (logged > 300)
+            return;
+        std::string state;
+        try
+        {
+            static Il2CppClass* og = GameClass("ope_og");
+            static Il2CppClass* object = [] {
+                size_t n = 0;
+                const Il2CppAssembly** assemblies = il2cpp_domain_get_assemblies(il2cpp_domain_get(), &n);
+                for (size_t i = 0; i < n; i++)
+                    if (Il2CppClass* k = il2cpp_class_from_name(il2cpp_assembly_get_image(assemblies[i]), "UnityEngine", "Object"))
+                        return k;
+                return static_cast<Il2CppClass*>(nullptr);
+            }();
+            if (!object)
+                return;
+            void* args[1] = { il2cpp_type_get_object(il2cpp_class_get_type(og)) };
+            auto* found = reinterpret_cast<Il2CppArray*>(Invoke(FindMethod(object, "FindObjectsOfType", 1), nullptr, args));
+            if (!found)
+                return;
+            auto** items = reinterpret_cast<Il2CppObject**>(reinterpret_cast<uint8_t*>(found) + kIl2CppSizeOfArray);
+            for (size_t i = 0; i < il2cpp_array_length(found); i++)
+            {
+                Il2CppObject* c = items[i];
+                auto text = [](Il2CppObject* str) {
+                    std::string out;
+                    for (wchar_t ch : Widen(reinterpret_cast<Il2CppString*>(str)))
+                        out += ch < 128 ? char(ch) : '?';
+                    return out;
+                };
+                auto get = [&](auto f) {
+                    try
+                    {
+                        return f();
+                    }
+                    catch (const Failure&)
+                    {
+                        return std::string("?");
+                    }
+                };
+                state += "\n  " + get([&] { return text(Call(Call(c, "get_gameObject"), "get_name")); });
+                state += get([&] { return std::string(Active(c) ? "" : " (hidden)"); });
+                Il2CppObject* animator = nullptr;
+                try
+                {
+                    animator = Call(c, "get_animator");
+                }
+                catch (const Failure&)
+                {
+                }
+                if (!animator)
+                {
+                    state += ": no animator";
+                    continue;
+                }
+                char buf[256];
+                // engine calls directly: the game's build stripped most of these managed getters
+                using BoolGet = bool (*)(Il2CppObject*);
+                using FloatGet = float (*)(Il2CppObject*);
+                using IntGet = int32_t (*)(Il2CppObject*);
+                using ObjGet = Il2CppObject* (*)(Il2CppObject*);
+                static auto enabled = reinterpret_cast<BoolGet>(il2cpp_resolve_icall("UnityEngine.Behaviour::get_isActiveAndEnabled()"));
+                static auto initialized = reinterpret_cast<BoolGet>(il2cpp_resolve_icall("UnityEngine.Animator::get_isInitialized()"));
+                static auto speed = reinterpret_cast<FloatGet>(il2cpp_resolve_icall("UnityEngine.Animator::get_speed()"));
+                static auto culling = reinterpret_cast<IntGet>(il2cpp_resolve_icall("UnityEngine.Animator::get_cullingMode()"));
+                static auto controller = reinterpret_cast<ObjGet>(il2cpp_resolve_icall("UnityEngine.Animator::get_runtimeAnimatorController()"));
+                static auto avatar = reinterpret_cast<ObjGet>(il2cpp_resolve_icall("UnityEngine.Animator::get_avatar()"));
+                static auto clipsOf = reinterpret_cast<ObjGet>(il2cpp_resolve_icall("UnityEngine.RuntimeAnimatorController::get_animationClips()"));
+                static auto nameOf = reinterpret_cast<ObjGet>(il2cpp_resolve_icall("UnityEngine.Object::GetName(UnityEngine.Object)"));
+                snprintf(buf, sizeof buf, ": animator %s%s, speed %g, culling %d", enabled && enabled(animator) ? "on" : "off",
+                         initialized && !initialized(animator) ? ", not initialized" : "", speed ? double(speed(animator)) : -1.0,
+                         culling ? culling(animator) : -1);
+                state += buf;
+                Il2CppObject* av = avatar ? avatar(animator) : nullptr;
+                state += av ? ", avatar " + text(nameOf ? nameOf(av) : nullptr) : std::string(", no avatar");
+                Il2CppObject* ctrl = controller ? controller(animator) : nullptr;
+                if (!ctrl)
+                    state += ", no controller";
+                else
+                {
+                    state += ", controller " + text(nameOf ? nameOf(ctrl) : nullptr) + " (" + il2cpp_class_get_name(il2cpp_object_get_class(ctrl)) + ")";
+                    auto* clips = clipsOf ? reinterpret_cast<Il2CppArray*>(clipsOf(ctrl)) : nullptr;
+                    size_t total = clips ? il2cpp_array_length(clips) : 0, missing = 0;
+                    for (size_t k = 0; k < total; k++)
+                        if (!reinterpret_cast<Il2CppObject**>(reinterpret_cast<uint8_t*>(clips) + kIl2CppSizeOfArray)[k])
+                            missing++;
+                    snprintf(buf, sizeof buf, ", %zu clips (%zu missing)", total, missing);
+                    state += buf;
+                }
+                state += get([&] {
+                    int32_t layer = 0;
+                    auto* info = static_cast<int32_t*>(il2cpp_object_unbox(Call(animator, "GetCurrentAnimatorStateInfo", &layer)));
+                    auto* f = reinterpret_cast<float*>(info);
+                    snprintf(buf, sizeof buf, ", state %08x length %.2f speed %g", uint32_t(info[2]), double(f[4]), double(f[5]));
+                    return std::string(buf);
+                });
+            }
+        }
+        catch (const Failure& f)
+        {
+            state = " (" + f.what + ")";
+        }
+        if (state != last)
+        {
+            last = state;
+            logged++;
+            fprintf(stderr, "player characters [%.1f s]:%s\n", double(GetTickCount64()) / 1000.0, state.empty() ? " none" : state.c_str());
+        }
+    }
+
     void LogGameState()
     {
         static std::string last;
@@ -1065,6 +1264,7 @@ namespace
     void RunPending()
     {
         recomp::ApplyDisplaySettings();
+        RegisterXInputLayout();
         ApplyControllerLayout();
         LogControllerInput();
         static int stateFrame = 0;
@@ -1072,6 +1272,7 @@ namespace
         {
             LogGameState();
             RecoverHubTutorial();
+            LogHubCharacters();
         }
         ApplyRunInBackground();
         RunBatches();

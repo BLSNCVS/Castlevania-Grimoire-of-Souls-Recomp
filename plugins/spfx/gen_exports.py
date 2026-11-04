@@ -23,7 +23,8 @@ RETURNS = {"void": "void", "IntPtr": "void*", "int": "int32_t", "uint": "uint32_
 # Unity hands D3D11 texture pointers where the plugin's GL code expects texture
 # names: they are swapped for names of emulated textures wrapping them.
 HOOKS = {"SPFX_PLUGIN_Instance_Create": "TextureInfo = spfx::gl::NativeTextureNames(TextureInfo, TextureInfoCount);",
-         "SPFX_PLUGIN_Instance_SetLabelTexture": "Texture = spfx::gl::NativeTextureName(Texture);"}
+         "SPFX_PLUGIN_Instance_SetLabelTexture": "Texture = spfx::gl::NativeTextureName(Texture);",
+         "SPFX_PLUGIN_SetDrawParameter": "spfx::gl::NoteDrawParameter(CameraID, Parameter);"}
 
 # host bookkeeping after the guest returns (c.x[0] holds its result)
 POSTHOOKS = {"SPFX_PLUGIN_Instance_Create": "spfx::NoteInstanceCreated(reinterpret_cast<void*>(c.x[0]), reinterpret_cast<const char*>(FileName));",
@@ -106,6 +107,7 @@ namespace spfx::gl
 {
     void* const* NativeTextureNames(void* const* info, int32_t count);
     void* NativeTextureName(void* texture);
+    void NoteDrawParameter(int32_t camera, const void* parameter);
 }
 
 #define EXPORT extern "C" __declspec(dllexport)

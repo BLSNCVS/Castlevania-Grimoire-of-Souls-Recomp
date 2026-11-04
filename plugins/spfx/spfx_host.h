@@ -34,6 +34,9 @@ namespace spfx
     void NoteInstanceCreated(void* handle, const char* file);
     void NoteInstanceStatus(void* handle, int32_t status);
 
+    // Plugin symbols (spfx_host.cpp)
+    uint64_t GuestSymbol(const char* name);
+
     // GOSR_SPFX_TRACE: log every call the game makes into the plugin
     bool TraceCalls();
 
@@ -41,4 +44,11 @@ namespace spfx
     void RegisterLibcImports();
     void RegisterCxxImports();
     void RegisterGlImports();
+}
+
+namespace spfx::gl
+{
+    // Around the plugin's drawing for one camera (gl_d3d11.cpp)
+    void BeginCameraDraw(int32_t camera);
+    void EndCameraDraw();
 }

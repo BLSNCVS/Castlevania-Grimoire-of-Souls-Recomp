@@ -191,8 +191,11 @@ namespace
 
     void UNITY_INTERFACE_API NativeRenderEvent(int eventId)
     {
-        if (g_guestRenderEvent)
-            spfx::CallGuest(g_guestRenderEvent, uint64_t(int64_t(eventId)));
+        if (!g_guestRenderEvent)
+            return;
+        spfx::gl::BeginCameraDraw(eventId);  // the game's event id is the camera id
+        spfx::CallGuest(g_guestRenderEvent, uint64_t(int64_t(eventId)));
+        spfx::gl::EndCameraDraw();
     }
 
     void UNITY_INTERFACE_API NativeDeviceEvent(UnityGfxDeviceEventType type)

@@ -4,6 +4,7 @@
 //   ope_pl_status.Damage(int)            damage the player's character takes
 //   ope_en_status.Damage(int, int, int)  damage an enemy takes
 //   uiUtility.GetKeyboardInputText(KEYBOARD_TRIGGER)  key names in the options
+//   SPFXCameraSimple/SPFXCameraCommandBuffer.UpdateVRev()  effects' vertical reverse
 #include <atomic>
 #include <cstdint>
 
@@ -15,6 +16,8 @@ namespace recomp
     void f_23b08bc_orig(Ctx& c);
     void f_1e08d38_orig(Ctx& c);
     void f_1bec6fc_orig(Ctx& c);
+    void f_2f03f64_orig(Ctx& c);
+    void f_2f01c78_orig(Ctx& c);
     bool MouseButtonsEnabled();  // mouse_keys.cpp
 
     // Set from the debug menu
@@ -60,5 +63,33 @@ namespace recomp
         if (!name)
             return f_1bec6fc_orig(c);
         c.x[0] = reinterpret_cast<uint64_t>(il2cpp_string_new(name));
+    }
+
+    // The effect cameras flip their projection per graphics API (VRevDirectX,
+    // VRevMetal, ... chosen from SystemInfo.graphicsDeviceType). The Direct3D
+    // values were made for the game's own Windows rendering setup; here the
+    // macOS setup runs, which needs the Metal ones: with the Direct3D values
+    // the UI cameras' effects (results, rewards, skill tree) came out upside
+    // down. VRevDirectX 0x41, VRevMetal 0x43 in both components.
+    static void UseMetalReverse(Ctx& c)
+    {
+        if (auto* self = reinterpret_cast<uint8_t*>(c.x[0]))
+            self[0x41] = self[0x43];
+    }
+
+    void HookSimpleCameraVRev(Ctx& c)
+    {
+        uint64_t self = c.x[0];
+        f_2f03f64_orig(c);
+        c.x[0] = self;
+        UseMetalReverse(c);
+    }
+
+    void HookCommandBufferCameraVRev(Ctx& c)
+    {
+        uint64_t self = c.x[0];
+        f_2f01c78_orig(c);
+        c.x[0] = self;
+        UseMetalReverse(c);
     }
 }

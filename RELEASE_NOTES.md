@@ -1,3 +1,71 @@
+# GoSRecomp 1.0.7
+
+- Controllers other than PlayStation and Xbox (Switch Pro, 8BitDo and others
+  in Switch mode) are read through their standard buttons, sticks and d-pad,
+  so movement, buttons and the d-pad work without a special table. Set
+  `standard=0` under `[controller]` in `gosr.ini` to turn it off, or `2` to
+  use it for every controller.
+- Effects upside down in the results, rewards and Develop Abilities screens
+  are fixed (from 1.0.6).
+- Xbox controllers: LT/RT, d-pad in menus and button icons (from 1.0.3).
+- The d-pad moves your character by default.
+- Troubleshooting steps in README.txt.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.7.zip` below (not "Source code").
+
+# GoSRecomp 1.0.6
+
+- Effects upside down in the results, rewards and Develop Abilities screens:
+  fixed at the source. The game picks each effect camera's orientation per
+  graphics API, and the Direct3D values didn't match how this port renders;
+  it now uses the macOS values, camera by camera, like the original. The tap
+  effect stays as it was.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.6.zip` below (not "Source code").
+
+# GoSRecomp 1.0.5
+
+- The upside-down effects fix from 1.0.2 is off again: it fixed some screens
+  but flipped effects that were right (the tap effect). It stays available as
+  `flip_fix=1` under `[effects]` in `gosr.ini` while a proper fix is worked out.
+- The effects log describes each camera that draws effects, to find which
+  ones come out upside down.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.5.zip` below (not "Source code").
+
+# GoSRecomp 1.0.4
+
+- More information in the crash log about the player characters in the hub
+  and roster (their animation state), to track down the T-pose some players
+  get there. No other change.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.4.zip` below (not "Source code").
+
+# GoSRecomp 1.0.3
+
+- Xbox controllers are now recognized as gamepads by the game: LT/RT, the
+  d-pad in menus and the button icons ("Button11" hints) should all work. If
+  your Xbox controller misbehaves, set `xinput=0` under `[controller]` in
+  `gosr.ini` and report it.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.3.zip` below (not "Source code").
+
+# GoSRecomp 1.0.2
+
+- Effects drawn upside down in some screens (results, rewards, Develop
+  Abilities) are drawn the right way up. If an effect looks wrong now, set
+  `flip_fix=0` under `[effects]` in `gosr.ini` and report it.
+- The d-pad now moves your character by default (`dpad_move=0` under
+  `[controller]` turns it off).
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.2.zip` below (not "Source code").
+
 # GoSRecomp 1.0.1
 
 - Xbox controllers: LT and RT work again (dodge), in game and when rebinding.

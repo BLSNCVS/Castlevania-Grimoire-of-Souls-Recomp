@@ -7,6 +7,7 @@
 // (gl_state.h) and get D3D11 copies when their contents change. Draws go to
 // whatever render target Unity bound for the plugin event.
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -14,6 +15,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <string>
 #include <thread>
@@ -22,6 +24,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <d3d11.h>
+#include <dxgi.h>
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
 
@@ -29,6 +32,8 @@
 #include "glsl_to_hlsl.h"
 #include "spfx_host.h"
 #include "unity_interfaces.h"
+
+extern "C" void SPFX_PLUGIN_SetDrawParameter(int32_t camera, void* parameter);  // spfx_exports.cpp
 
 namespace spfx::gl
 {
@@ -56,6 +61,7 @@ namespace spfx::gl
 
         ID3D11Device* g_device = nullptr;
         ID3D11DeviceContext* g_context = nullptr;
+        bool g_flipCameraY = false;  // while a camera is drawn with its projection flipped (BeginCameraDraw)
         bool g_unavailable = false;
 
         bool EnsureDevice()
@@ -859,7 +865,7 @@ namespace spfx::gl
                 D3D11_CULL_MODE cull = D3D11_CULL_NONE;
                 if (s.cull && !noCull)
                     cull = s.cullFace == 0x0404 ? D3D11_CULL_FRONT : s.cullFace == 0x0405 ? D3D11_CULL_BACK : D3D11_CULL_NONE;
-                bool ccw = s.frontFace == 0x0901;
+                bool ccw = (s.frontFace == 0x0901) != g_flipCameraY;
                 uint32_t key = uint32_t(cull) | (ccw ? 16 : 0);
                 static std::map<uint32_t, Com<ID3D11RasterizerState>> cache;
                 ID3D11RasterizerState* r = Cached(cache, key);
@@ -1106,6 +1112,122 @@ namespace spfx::gl
             p = NativeTextureName(p);
         return copy.data();
     }
+
+    // ------------------------------------------------------------ camera flip
+    // The game asks Unity for the texture version of the projection matrix
+    // (y flipped) only when the camera has a targetTexture or renders deferred
+    // (SPFXSystem.SetupRendering). On D3D11 a camera with image effects also
+    // draws into an intermediate texture, and then effects came out upside
+    // down (results screen). The matrix is set per camera before the frame;
+    // when it is drawn, the bound target tells which convention is right.
+    namespace
+    {
+        constexpr size_t kDrawParameterSize = 0x13c;  // SPFXCore.DRAWPARAMETER
+        constexpr size_t kProjection = 0x60;          // MATRIX4x4 ProjectionMatrix, column-major
+        std::mutex g_drawParameterLock;
+        std::unordered_map<int32_t, std::array<uint8_t, kDrawParameterSize>> g_drawParameters;
+        thread_local bool g_replaying = false;
+    }
+
+    // gosr.ini [effects] flip_fix=1 turns the experimental correction on (only logged otherwise)
+    static bool FlipEnabled()
+    {
+        static const bool on = [] {
+            wchar_t path[MAX_PATH * 4];
+            DWORD len = GetModuleFileNameW(nullptr, path, MAX_PATH * 4);
+            std::wstring ini(path, len);
+            ini = ini.substr(0, ini.find_last_of(L"\\/") + 1) + L"gosr.ini";
+            return GetPrivateProfileIntW(L"effects", L"flip_fix", 0, ini.c_str()) != 0;
+        }();
+        return on;
+    }
+
+    void NoteDrawParameter(int32_t camera, const void* parameter)
+    {
+        if (!parameter || g_replaying)
+            return;
+        std::lock_guard<std::mutex> lock(g_drawParameterLock);
+        if (g_drawParameters.size() > 256)
+            g_drawParameters.clear();
+        memcpy(g_drawParameters[camera].data(), parameter, kDrawParameterSize);
+    }
+
+    // The bound target is the swap chain's back buffer (not one of Unity's
+    // render textures, which are all shader resources)
+    static bool DrawingIntoBackBuffer(std::string& what)
+    {
+        Com<ID3D11RenderTargetView> rtv;
+        g_context->OMGetRenderTargets(1, rtv.put(), nullptr);
+        if (!rtv)
+        {
+            what = "no target";
+            return true;
+        }
+        Com<ID3D11Resource> res;
+        rtv->GetResource(res.put());
+        Com<IDXGIResource> dxgi;
+        DXGI_USAGE usage = 0;
+        if (SUCCEEDED(res->QueryInterface(__uuidof(IDXGIResource), reinterpret_cast<void**>(dxgi.put()))))
+            dxgi->GetUsage(&usage);
+        Com<ID3D11Texture2D> tex;
+        D3D11_TEXTURE2D_DESC td = {};
+        if (SUCCEEDED(res->QueryInterface(IID_ID3D11Texture2D, reinterpret_cast<void**>(tex.put()))))
+            tex->GetDesc(&td);
+        char buf[128];
+        snprintf(buf, sizeof buf, "%ux%u format %u bind 0x%x usage 0x%x", td.Width, td.Height, unsigned(td.Format),
+                 td.BindFlags, unsigned(usage));
+        what = buf;
+        return (usage & DXGI_USAGE_BACK_BUFFER) || !(td.BindFlags & D3D11_BIND_SHADER_RESOURCE);
+    }
+
+    void BeginCameraDraw(int32_t camera)
+    {
+        g_flipCameraY = false;
+        if (!EnsureDevice())
+            return;
+        std::array<uint8_t, kDrawParameterSize> p;
+        {
+            std::lock_guard<std::mutex> lock(g_drawParameterLock);
+            auto it = g_drawParameters.find(camera);
+            if (it == g_drawParameters.end())
+                return;
+            p = it->second;
+        }
+        float* m = reinterpret_cast<float*>(p.data() + kProjection);
+        bool flippedMatrix = m[5] < 0;  // m11
+        std::string what;
+        bool intoTexture = !DrawingIntoBackBuffer(what);
+        {
+            // every distinct case once in gosr_spfx.log
+            static std::mutex lock;
+            static std::vector<std::string> seen;
+            // what tells the cameras apart (SPFXCore.DRAWPARAMETER)
+            auto i32 = [&](size_t offset) { int32_t v; memcpy(&v, p.data() + offset, 4); return v; };
+            auto i64 = [&](size_t offset) { int64_t v; memcpy(&v, p.data() + offset, 8); return v; };
+            char cam[200];
+            snprintf(cam, sizeof cam, ", %s, mask %08x, layers %08x, flags %x, %dx%d, rt %d, depth %d, m11 %.3f m13 %.3f",
+                     m[15] == 1.0f ? "ortho" : "perspective", uint32_t(i32(0x124)), uint32_t(i32(0x128)), uint32_t(i32(0x138)),
+                     i32(0x130), i32(0x134), i64(0x0) != 0, i64(0x8) != 0, double(m[5]), double(m[13]));
+            std::string line = std::string(intoTexture ? "texture " : "back buffer ") + what +
+                               (flippedMatrix ? ", texture matrix" : ", screen matrix") + cam;
+            std::lock_guard<std::mutex> g(lock);
+            if (seen.size() < 64 && std::find(seen.begin(), seen.end(), line) == seen.end())
+            {
+                seen.push_back(line);
+                Log("camera target: %s%s", line.c_str(), flippedMatrix != intoTexture && FlipEnabled() ? " (flipped)" : "");
+            }
+        }
+        if (flippedMatrix == intoTexture || !FlipEnabled())
+            return;
+        for (int i : { 1, 5, 9, 13 })  // row 1
+            m[i] = -m[i];
+        g_replaying = true;
+        SPFX_PLUGIN_SetDrawParameter(camera, p.data());
+        g_replaying = false;
+        g_flipCameraY = true;
+    }
+
+    void EndCameraDraw() { g_flipCameraY = false; }
 
     // ---------------------------------------------------------------- drawing
 

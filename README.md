@@ -49,7 +49,8 @@ there. Leave a value empty to keep the game's own behavior.
 |---|---|
 | `[game]` | `language`: empty follows your Windows language |
 | `[display]` | `fps` (0 = no cap), `vsync`, `mode` (fullscreen, borderless, windowed), `width`, `height` |
-| `[controller]` | `layout=pc` (default), or `mac` for the tables the macOS build used. `dpad_move=1` lets the d-pad move your character |
+| `[controller]` | `layout=pc` (default), or `mac` for the tables the macOS build used. `dpad_move=0` stops the d-pad from moving your character. `xinput=0` if an Xbox controller misbehaves. `standard`: other controllers read by their standard buttons (1, default), for every controller (2) or off (0) |
+| `[effects]` | `flip_fix=1`: experimental fix for effects drawn upside down in some screens (off by default) |
 | `[mouse]` | `buttons=0` turns off mouse buttons in the keyboard options |
 | `[debug]` | `menu=0` turns off the debug menu, `hotkey` changes F8 |
 
@@ -69,6 +70,14 @@ effects. Things I know about:
 
 No multiplayer: the co-op rooms need an online server, and this port only
 emulates the offline one.
+
+### Troubleshooting
+
+- **Setup.bat says "not a GoSRecomp release"**: you downloaded "Source code". Download `GoSRecomp-x.y.z.zip` from the Releases page.
+- **Setup.bat says the files are not the expected ones**: the `.dmg` must be the macOS app, version 1.4.2, unmodified.
+- **Characters T-pose in the hub or roster**: update your graphics driver. An NVIDIA driver update fixed it for the players who had it.
+- **Controller buttons or sticks are wrong**: PlayStation and Xbox controllers, press Default once in the game's controller options. Other controllers (8BitDo, Switch Pro, ...): use their X-input (Xbox) or Switch mode; if buttons are still wrong, set `standard=2` under `[controller]` in `gosr.ini`. An Xbox controller that misbehaves: `xinput=0`.
+- **The d-pad moves your character** and you don't want it: `dpad_move=0`.
 
 Found a bug? Start the game with `Play with crash log.bat`. When it closes it
 makes a `crash_report.zip` with the logs, a copy of your save and settings, and

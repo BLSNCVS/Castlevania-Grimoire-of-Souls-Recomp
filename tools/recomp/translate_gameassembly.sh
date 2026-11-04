@@ -24,13 +24,15 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 #   0x200fbe0           gsJoystick.IsTrigger           (controller axes 5-28, Xbox LT/RT)
 #   0x200f60c           gsJoystick.NewInputDevices     (d-pad moves, optional)
 #   0x1ecc8f0           GetInputSystemKeyDown          (rebinding Xbox LT/RT)
+#   0x2f03f64, 0x2f01c78  SPFXCamera*.UpdateVRev         (effects' vertical reverse)
 COMMON=(--signatures "$WORK/script.json" --types "$WORK/type_classes.json"
         --native-resolvers 0x192c68,0x1931a0 --lsda "$WORK/lsda.json" --wrapper-typeinfo 0x3abc148)
 
 python3 -I "$HERE/arm64_recomp.py" "$GAME_ARM64" "$WORK/ft_all.json" "$RECOMP_OUT" --split 512 "${COMMON[@]}" \
     --override 0x182b004=LocalServerMoveNext \
     --hook 0x23b08bc=HookPlayerDamage --hook 0x1e08d38=HookEnemyDamage --hook 0x1bec6fc=HookKeyboardInputText \
-    --hook 0x200fbe0=HookIsTrigger --hook 0x200f60c=HookJoystickInput --hook 0x1ecc8f0=HookRebindInputSystemKeyDown
+    --hook 0x200fbe0=HookIsTrigger --hook 0x200f60c=HookJoystickInput --hook 0x1ecc8f0=HookRebindInputSystemKeyDown \
+    --hook 0x2f03f64=HookSimpleCameraVRev --hook 0x2f01c78=HookCommandBufferCameraVRev
 python3 -I "$HERE/arm64_recomp.py" "$GAME_ARM64" "$WORK/ft_gap.json" "$GAP_OUT" --split 8 --extra-table "${COMMON[@]}"
 cp "$HERE/../../recomp/runtime/recomp_simd.h" "$RECOMP_OUT/"
 cp "$HERE/../../recomp/runtime/recomp_simd.h" "$GAP_OUT/"
