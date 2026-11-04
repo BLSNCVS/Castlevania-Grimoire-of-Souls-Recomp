@@ -4,8 +4,10 @@ Castlevania: Grimoire of Souls (Apple Arcade, macOS) running natively on Windows
 Same idea as [Unleashed Recompiled](https://github.com/hedge-dev/UnleashedRecomp).
 
 > You need your own copy of the game: the macOS app, version 1.4.2, as a `.dmg`.
-> There is no game code, art or data in this repo or in the releases; the setup
-> builds everything on your PC from your own image. Please don't ask for game
+> This repo has no game code or data. The releases have no game data (art,
+> sound, text): the setup takes it from your own image. Their `GameAssembly.dll`
+> does contain the game's code, machine-translated to x64, and it doesn't run
+> without the original files from your image. Please don't ask for game
 > files or post links to them. Not affiliated with Konami or Apple.
 
 ## What's in it
