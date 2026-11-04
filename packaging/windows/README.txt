@@ -16,6 +16,7 @@ SETTINGS (gosr.ini)
   [game]       language=    empty = your Windows language
   [display]    fps= vsync= mode= width= height=
   [controller] layout=pc    (mac = the macOS tables)
+               dpad_move=1  the d-pad moves your character too
   [mouse]      buttons=1    mouse buttons in the keyboard options
   [debug]      menu=1 hotkey=F8
 Each setting is explained in gosr.ini.

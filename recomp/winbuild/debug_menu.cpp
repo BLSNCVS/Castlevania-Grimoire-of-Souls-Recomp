@@ -1034,7 +1034,9 @@ namespace
                 {
                     lastDevice = name;
                     lastType = type;
-                    fprintf(stderr, "controller: \"%s\", type %d (0 Xbox, 1 Xbox Elite, 2 PS4, 3 PS5, 4 MFi)\n", name.c_str(), type);
+                    bool inputSystem = GetField<Il2CppObject*>(joystick, "m_currentDevice") != nullptr;
+                    fprintf(stderr, "controller: \"%s\", type %d (0 Xbox, 1 Xbox Elite, 2 PS4, 3 PS5, 4 MFi), %s\n", name.c_str(),
+                            type, inputSystem ? "Input System gamepad" : "no Input System gamepad");
                     logged++;
                 }
             }

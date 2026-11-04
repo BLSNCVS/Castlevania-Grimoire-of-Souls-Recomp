@@ -1,3 +1,15 @@
+# GoSRecomp 1.0.1
+
+- Xbox controllers: LT and RT work again (dodge), in game and when rebinding.
+  The d-pad on Xbox pads reads correctly too.
+- New option: `dpad_move=1` under `[controller]` in `gosr.ini` lets the d-pad
+  move your character.
+- The log now says whether the game found your controller through Unity's
+  Input System, to help with controller reports.
+
+Update: extract into a new folder and run `Setup.bat` again, your save is kept.
+Download `GoSRecomp-1.0.1.zip` below (not "Source code").
+
 # GoSRecomp 1.0.0
 
 First release. Castlevania: Grimoire of Souls running natively on Windows.
@@ -7,7 +19,8 @@ no game data in here; `Setup.bat` takes it from your image.
 
 ## Installing
 
-1. Extract the zip into a new, empty folder.
+1. Download `GoSRecomp-1.0.0.zip` below (not "Source code") and extract it
+   into a new, empty folder.
 2. Drag your `.dmg` onto `Setup.bat`.
 3. Start the game with `Play.bat`.
 

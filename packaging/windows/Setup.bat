@@ -7,6 +7,8 @@ echo.
 echo This copies the game data out of YOUR Castlevania: Grimoire of Souls
 echo macOS v1.4.2 disk image (.dmg) and converts it for Windows.
 echo.
+if not exist "%~dp0GoS.exe" goto notrelease
+if not exist "%~dp0_tools\overlay.7z" goto notrelease
 set "SRC=%~1"
 if not defined SRC (
   echo Drag the .dmg onto Setup.bat, or paste its full path here and press Enter:
@@ -70,5 +72,12 @@ goto fail
 :fail
 echo.
 echo Setup failed. Please send a screenshot of this window.
+pause
+exit /b 1
+
+:notrelease
+echo This folder is not a GoSRecomp release.
+echo On the GitHub Releases page, download GoSRecomp-x.y.z.zip, not "Source code".
+echo.
 pause
 exit /b 1

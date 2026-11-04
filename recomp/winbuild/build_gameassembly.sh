@@ -54,7 +54,7 @@ compile() {  # flags, output dir, sources...
 echo "== libil2cpp"
 mapfile -t IL2CPP_SOURCES < <(find "$L/libil2cpp" -name '*.cpp' | grep -vE '/os/(Posix|WinRT|Android|Emscripten|Lumin|WindowsGames|OSX)/|/debugger/|/metadata/FieldLayout\.cpp$')
 compile "$IL2CPP_FLAGS" "$BUILD_DIR/il2cpp" "${IL2CPP_SOURCES[@]}" "$HERE/field_layout_clang_abi.cpp"
-compile "$IMPORT_FLAGS" "$BUILD_DIR/glue" "$HERE/runtime_imports.cpp" "$HERE/icall_marshal.cpp" "$HERE/icall_imports.cpp" "$HERE/libc_imports.cpp" "$HERE/debug_menu.cpp" "$HERE/mouse_keys.cpp" "$HERE/display.cpp" "$HERE/battle_hooks.cpp"
+compile "$IMPORT_FLAGS" "$BUILD_DIR/glue" "$HERE/runtime_imports.cpp" "$HERE/icall_marshal.cpp" "$HERE/icall_imports.cpp" "$HERE/libc_imports.cpp" "$HERE/debug_menu.cpp" "$HERE/mouse_keys.cpp" "$HERE/display.cpp" "$HERE/battle_hooks.cpp" "$HERE/controller_hooks.cpp"
 
 echo "== offline server"
 compile "$IMPORT_FLAGS /I$HERE/../server" "$BUILD_DIR/server" "$HERE/../server/local_server.cpp" "$HERE/../server/msgpack.cpp"

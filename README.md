@@ -7,8 +7,8 @@ Same idea as [Unleashed Recompiled](https://github.com/hedge-dev/UnleashedRecomp
 > This repo has no game code or data. The releases have no game data (art,
 > sound, text): the setup takes it from your own image. Their `GameAssembly.dll`
 > does contain the game's code, machine-translated to x64, and it doesn't run
-> without the original files from your image. Please don't ask for game
-> files or post links to them. Not affiliated with Konami or Apple.
+> without the original files from your image. Please don't ask for game files
+> or post links to them. Not affiliated with Konami, Apple or Unity.
 
 ## What's in it
 
@@ -27,7 +27,8 @@ Same idea as [Unleashed Recompiled](https://github.com/hedge-dev/UnleashedRecomp
 
 ## Installing
 
-1. Grab the latest release and extract it into a new, empty folder.
+1. On the Releases page, download `GoSRecomp-x.y.z.zip` (not "Source code",
+   that's just this repo) and extract it into a new, empty folder.
 2. Drag your `.dmg` onto `Setup.bat`, or run it and paste the path. It takes a
    few minutes and needs about 3 GB free while it runs. If your image isn't
    version 1.4.2 it stops and tells you.
@@ -48,7 +49,7 @@ there. Leave a value empty to keep the game's own behavior.
 |---|---|
 | `[game]` | `language`: empty follows your Windows language |
 | `[display]` | `fps` (0 = no cap), `vsync`, `mode` (fullscreen, borderless, windowed), `width`, `height` |
-| `[controller]` | `layout=pc` (default), or `mac` for the tables the macOS build used |
+| `[controller]` | `layout=pc` (default), or `mac` for the tables the macOS build used. `dpad_move=1` lets the d-pad move your character |
 | `[mouse]` | `buttons=0` turns off mouse buttons in the keyboard options |
 | `[debug]` | `menu=0` turns off the debug menu, `hotkey` changes F8 |
 
@@ -65,6 +66,9 @@ effects. Things I know about:
   shaders get converted. After that they're cached.
 - The game was made for 60 fps. Higher caps work, but if something feels too
   fast, go back to 60.
+
+No multiplayer: the co-op rooms need an online server, and this port only
+emulates the offline one.
 
 Found a bug? Start the game with `Play with crash log.bat`. When it closes it
 makes a `crash_report.zip` with the logs, a copy of your save and settings, and
