@@ -68,8 +68,7 @@ effects. Things I know about:
 - The game was made for 60 fps. Higher caps work, but if something feels too
   fast, go back to 60.
 
-No multiplayer: the co-op rooms need an online server, and this port only
-emulates the offline one.
+No multiplayer: I thought the game had multiplayer, but looks like I was completely wrong mb, which is a good thing in this case.
 
 ### Troubleshooting
 
