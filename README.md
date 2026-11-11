@@ -68,9 +68,6 @@ effects. Things I know about:
 - The game was made for 60 fps. Higher caps work, but if something feels too
   fast, go back to 60.
 
-No multiplayer: the co-op rooms need an online server, and this port only
-emulates the offline one.
-
 ### Troubleshooting
 
 - **Setup.bat says "not a GoSRecomp release"**: you downloaded "Source code". Download `GoSRecomp-x.y.z.zip` from the Releases page.
