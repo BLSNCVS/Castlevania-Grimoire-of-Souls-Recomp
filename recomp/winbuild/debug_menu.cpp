@@ -1268,11 +1268,40 @@ namespace
         }
     }
 
+    // The button icons (an Xbox A instead of "Button8") are drawn only when
+    // mvUiManager thinks the OS major version is 11 or newer. That check is
+    // the macOS one (Big Sur). Windows reports major 10, so the hub keeps the
+    // generic label. The icon renderer is SymbolImageBundleWrapper.dll.
+    void EnableSymbolImages()
+    {
+        static bool logged = false;
+        try
+        {
+            Il2CppObject* ui = Singleton("mvUiManager");
+            FieldInfo* major = FindField(il2cpp_object_get_class(ui), "m_systemMajorVersion");
+            int32_t version = 0;
+            il2cpp_field_get_value(ui, major, &version);
+            if (version > 10)
+                return;
+            int32_t icons = 11;
+            il2cpp_field_set_value(ui, major, &icons);
+            if (!logged)
+            {
+                logged = true;
+                fprintf(stderr, "GoSRecomp: OS major %d would hide controller icons; button icons are on\n", version);
+            }
+        }
+        catch (const Failure&)
+        {
+        }
+    }
+
     // --------------------------------------------------------- main-thread hook
 
     void RunPending()
     {
         recomp::ApplyDisplaySettings();
+        EnableSymbolImages();
         RegisterXInputLayout();
         ApplyControllerLayout();
         LogControllerInput();
